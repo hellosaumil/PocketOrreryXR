@@ -1,0 +1,5 @@
+---
+trigger: always_on
+---
+
+If the shell commands don't work, make sure to `cd` to project root and retry before giving up.

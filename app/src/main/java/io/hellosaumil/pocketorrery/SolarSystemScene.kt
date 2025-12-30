@@ -51,7 +51,7 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     // Render Planets
     SolarSystemRepository.planets.forEach { planet ->
         val angle = animationTime * planet.orbitSpeed * 0.5f
-        val scaleFactor = 0.5f
+        val scaleFactor = 100f // Scale to make distances visible in 3D (dp units)
         val x = cos(angle) * planet.orbitDistance * scaleFactor
         val z = sin(angle) * planet.orbitDistance * scaleFactor
         
