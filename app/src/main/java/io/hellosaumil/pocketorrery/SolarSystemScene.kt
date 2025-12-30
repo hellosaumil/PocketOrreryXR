@@ -13,9 +13,13 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Ray
 import androidx.xr.runtime.math.Vector3
+import androidx.xr.scenecore.Entity
+import androidx.xr.scenecore.EntityMoveListener
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
+import androidx.xr.scenecore.MovableComponent
 import kotlin.io.path.Path
 import kotlin.math.cos
 import kotlin.math.sin
@@ -28,6 +32,9 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     
     // Animation time state
     var animationTime by remember { mutableFloatStateOf(0f) }
+    
+    // State for tracking dragging
+    var isDraggingSun by remember { mutableStateOf(false) }
     
     // State for loaded model
     var sphereModel by remember { mutableStateOf<GltfModel?>(null) }
@@ -52,17 +59,45 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         if (model != null) {
             val newEntities = mutableMapOf<Planet, GltfModelEntity>()
             
-            // Create Sun entity - stationary at center
+            // Create Sun entity - stationary at center, but draggable
             try {
                 val sunEntity = GltfModelEntity.create(
                     session,
                     model,
                     Pose(translation = Vector3(0f, 0f, -1.5f)) // 1.5 meters in front, centered
                 ).apply {
-                    setScale(0.15f) // 15cm diameter for sun
+                    setScale(0.2f) // 20cm diameter for sun
+                    
+                    // Make sun draggable to move the solar system
+                    val movableComponent = MovableComponent.createSystemMovable(session, scaleInZ = false)
+                    
+                    // Add listener to pause during drag
+                    movableComponent.addMoveListener(object : EntityMoveListener {
+                        override fun onMoveStart(
+                            entity: Entity,
+                            initialInputRay: Ray,
+                            initialPose: Pose,
+                            initialScale: Float,
+                            initialParent: Entity
+                        ) {
+                            isDraggingSun = true
+                        }
+                        
+                        override fun onMoveEnd(
+                            entity: Entity,
+                            finalInputRay: Ray,
+                            finalPose: Pose,
+                            finalScale: Float,
+                            updatedParent: Entity?
+                        ) {
+                            isDraggingSun = false
+                        }
+                    })
+                    
+                    addComponent(movableComponent)
                 }
                 newEntities[SolarSystemRepository.sol] = sunEntity
-                android.util.Log.d("SolarSystemScene", "Sun entity created")
+                android.util.Log.d("SolarSystemScene", "Sun entity created with MovableComponent")
             } catch (e: Exception) {
                 android.util.Log.e("SolarSystemScene", "Failed to create sun entity", e)
             }
@@ -76,8 +111,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                         model,
                         Pose(translation = Vector3(initialX, 0f, -1.5f))
                     ).apply {
-                        // Scale planets relative to their size (smaller than sun)
-                        setScale(0.01f + planet.radius * 0.02f)
+                        // Scale planets: 2cm base + up to 9cm based on radius
+                        setScale(0.02f + planet.radius * 0.15f)
                     }
                     newEntities[planet] = entity
                     android.util.Log.d("SolarSystemScene", "Planet ${planet.name} entity created")
@@ -99,35 +134,45 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         entities.forEach { (planet, entity) ->
             val isSelected = uiState.selectedPlanet == planet
             // Scale up selected planet
-            val baseScale = if (planet == SolarSystemRepository.sol) 0.15f else 0.01f + planet.radius * 0.02f
+            val baseScale = if (planet == SolarSystemRepository.sol) 0.2f else 0.02f + planet.radius * 0.15f
             val scale = if (isSelected) baseScale * 1.5f else baseScale
             entity.setScale(scale)
         }
     }
     
     // Animation Loop - only animate planets, not the sun
-    LaunchedEffect(uiState.isPaused, entities) {
+    // Pauses when user is dragging the sun or when paused via UI
+    LaunchedEffect(uiState.isPaused, isDraggingSun, entities) {
         if (entities.isEmpty()) return@LaunchedEffect
         
-        val startTime = System.nanoTime()
-        while (!uiState.isPaused) {
+        // Record when this animation session started, offset by previous accumulated time
+        val sessionStartTime = System.nanoTime()
+        val baseTime = animationTime // Start from current animation time
+        val sunEntity = entities[SolarSystemRepository.sol]
+        
+        while (!uiState.isPaused && !isDraggingSun) {
             withFrameMillis { _ ->
-                animationTime = (System.nanoTime() - startTime) / 1_000_000_000f
+                // Add elapsed time to the base time (preserves position across pauses)
+                val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
+                animationTime = baseTime + elapsedTime
                 
-                // Update planet positions (orbiting around sun)
+                // Get sun's current position (may have been moved by user)
+                val sunPos = sunEntity?.getPose()?.translation ?: Vector3(0f, 0f, -1.5f)
+                
+                // Update planet positions (orbiting around sun's current position)
                 entities.forEach { (planet, entity) ->
-                    // Sun stays stationary
+                    // Sun stays where user drags it
                     if (planet == SolarSystemRepository.sol) {
                         return@forEach
                     }
                     
                     val angle = animationTime * planet.orbitSpeed * 0.3f
                     val distance = planet.orbitDistance * 0.1f // 10cm per unit
-                    val x = cos(angle) * distance
-                    val z = -1.5f + sin(angle) * distance // Orbit around sun at z=-1.5
+                    val x = sunPos.x + cos(angle) * distance
+                    val z = sunPos.z + sin(angle) * distance
                     
                     entity.setPose(
-                        Pose(translation = Vector3(x, 0f, z))
+                        Pose(translation = Vector3(x, sunPos.y, z))
                     )
                 }
             }

@@ -17,7 +17,9 @@ class SolarSystemViewModel : ViewModel() {
     val uiState: StateFlow<SolarSystemUiState> = _uiState.asStateFlow()
 
     fun selectPlanet(planet: Planet?) {
-        _uiState.update { it.copy(selectedPlanet = planet) }
+        // Toggle: if already selected, deselect it
+        val newSelection = if (_uiState.value.selectedPlanet == planet) null else planet
+        _uiState.update { it.copy(selectedPlanet = newSelection) }
     }
 
     fun togglePause() {
