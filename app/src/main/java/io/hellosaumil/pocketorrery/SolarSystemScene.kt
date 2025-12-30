@@ -52,33 +52,35 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         if (model != null) {
             val newEntities = mutableMapOf<Planet, GltfModelEntity>()
             
-            // Create Sun entity
+            // Create Sun entity - stationary at center
             try {
                 val sunEntity = GltfModelEntity.create(
                     session,
                     model,
-                    Pose(translation = Vector3(0f, 0f, -1f)) // 1 meter in front
+                    Pose(translation = Vector3(0f, 0f, -1.5f)) // 1.5 meters in front, centered
                 ).apply {
-                    setScale(0.3f) // 30cm diameter
+                    setScale(0.15f) // 15cm diameter for sun
                 }
                 newEntities[SolarSystemRepository.sol] = sunEntity
-                android.util.Log.d("SolarSystemScene", "Sun entity created with scale 0.3")
+                android.util.Log.d("SolarSystemScene", "Sun entity created")
             } catch (e: Exception) {
                 android.util.Log.e("SolarSystemScene", "Failed to create sun entity", e)
             }
             
-            // Create planet entities
+            // Create planet entities - start at their orbital positions
             SolarSystemRepository.planets.forEach { planet ->
                 try {
+                    val initialX = planet.orbitDistance * 0.1f
                     val entity = GltfModelEntity.create(
                         session,
                         model,
-                        Pose(translation = Vector3(0f, 0f, -1f)) // Start 1 meter in front
+                        Pose(translation = Vector3(initialX, 0f, -1.5f))
                     ).apply {
-                        setScale(planet.radius * 0.1f) // Scale based on planet size
+                        // Scale planets relative to their size (smaller than sun)
+                        setScale(0.01f + planet.radius * 0.02f)
                     }
                     newEntities[planet] = entity
-                    android.util.Log.d("SolarSystemScene", "Planet ${planet.name} entity created with scale ${planet.radius * 0.1f}")
+                    android.util.Log.d("SolarSystemScene", "Planet ${planet.name} entity created")
                 } catch (e: Exception) {
                     android.util.Log.e("SolarSystemScene", "Failed to create entity for ${planet.name}", e)
                 }
@@ -92,7 +94,18 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         }
     }
     
-    // Animation Loop
+    // Handle selected planet highlighting
+    LaunchedEffect(uiState.selectedPlanet, entities) {
+        entities.forEach { (planet, entity) ->
+            val isSelected = uiState.selectedPlanet == planet
+            // Scale up selected planet
+            val baseScale = if (planet == SolarSystemRepository.sol) 0.15f else 0.01f + planet.radius * 0.02f
+            val scale = if (isSelected) baseScale * 1.5f else baseScale
+            entity.setScale(scale)
+        }
+    }
+    
+    // Animation Loop - only animate planets, not the sun
     LaunchedEffect(uiState.isPaused, entities) {
         if (entities.isEmpty()) return@LaunchedEffect
         
@@ -101,12 +114,17 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
             withFrameMillis { _ ->
                 animationTime = (System.nanoTime() - startTime) / 1_000_000_000f
                 
-                // Update planet positions (in meters, 1 meter in front of user)
+                // Update planet positions (orbiting around sun)
                 entities.forEach { (planet, entity) ->
-                    val angle = animationTime * planet.orbitSpeed * 0.5f
-                    val distance = planet.orbitDistance * 0.15f // Scale orbit to reasonable size
+                    // Sun stays stationary
+                    if (planet == SolarSystemRepository.sol) {
+                        return@forEach
+                    }
+                    
+                    val angle = animationTime * planet.orbitSpeed * 0.3f
+                    val distance = planet.orbitDistance * 0.1f // 10cm per unit
                     val x = cos(angle) * distance
-                    val z = -1f + sin(angle) * distance // Center 1m in front
+                    val z = -1.5f + sin(angle) * distance // Orbit around sun at z=-1.5
                     
                     entity.setPose(
                         Pose(translation = Vector3(x, 0f, z))

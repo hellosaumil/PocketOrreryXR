@@ -5,8 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,8 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -95,7 +99,7 @@ fun MySpatialContent(
     onRequestHomeSpaceMode: () -> Unit
 ) {
     SpatialPanel(
-        modifier = SubspaceModifier.width(600.dp).height(800.dp),
+        modifier = SubspaceModifier.width(320.dp).height(700.dp),
         dragPolicy = MovePolicy(),
         resizePolicy = ResizePolicy()
     ) {
@@ -157,6 +161,23 @@ fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
             Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
         }
         
+        // Show selected planet info
+        uiState.selectedPlanet?.let { planet ->
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(planet.name, style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(planet.description, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        
         Spacer(modifier = Modifier.height(16.dp))
         Text("Planets", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
@@ -185,6 +206,13 @@ fun PlanetItem(planet: Planet, isSelected: Boolean, onClick: () -> Unit) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Color indicator
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(planet.color, CircleShape)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Text(planet.name, style = MaterialTheme.typography.bodyLarge)
         }
     }
