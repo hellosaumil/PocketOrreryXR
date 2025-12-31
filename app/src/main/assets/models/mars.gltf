@@ -1,15 +1,8 @@
 {
     "asset": {
         "version": "2.0",
-        "generator": "babylon.js glTF exporter for 3dsmax 2022 v20220210.4",
-        "copyright": "CC0, No Rights Reserved. Model and texture created by Eric Chadwick"
+        "generator": "Python Sphere Gen"
     },
-    "extensionsUsed": [
-        "KHR_texture_transform"
-    ],
-    "extensionsRequired": [
-        "KHR_texture_transform"
-    ],
     "scene": 0,
     "scenes": [
         {
@@ -21,11 +14,6 @@
     "nodes": [
         {
             "mesh": 0,
-            "translation": [
-                0.0,
-                0.0,
-                0.0
-            ],
             "name": "Sphere"
         }
     ],
@@ -34,126 +22,105 @@
             "primitives": [
                 {
                     "attributes": {
-                        "POSITION": 1,
-                        "NORMAL": 2,
-                        "TEXCOORD_0": 3
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
                     },
-                    "indices": 0,
+                    "indices": 3,
                     "material": 0
                 }
             ],
             "name": "Sphere"
         }
     ],
+    "materials": [
+        {
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.9,
+                "baseColorTexture": {
+                    "index": 0
+                }
+            },
+            "name": "Default"
+        }
+    ],
     "accessors": [
         {
             "bufferView": 0,
-            "componentType": 5123,
-            "count": 9216,
-            "type": "SCALAR",
-            "name": "accessorIndices"
-        },
-        {
-            "bufferView": 1,
+            "byteOffset": 0,
             "componentType": 5126,
-            "count": 1728,
+            "count": 4096,
+            "type": "VEC3",
             "max": [
-                0.5000792,
-                0.4901544,
-                0.5000792
+                0.5,
+                0.5,
+                0.5
             ],
             "min": [
-                -0.5000792,
-                -0.490154475,
-                -0.5000792
-            ],
-            "type": "VEC3",
-            "name": "accessorPositions"
+                -0.5,
+                -0.5,
+                -0.5
+            ]
+        },
+        {
+            "bufferView": 0,
+            "byteOffset": 49152,
+            "componentType": 5126,
+            "count": 4096,
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 0,
+            "byteOffset": 98304,
+            "componentType": 5126,
+            "count": 4096,
+            "type": "VEC2"
         },
         {
             "bufferView": 1,
-            "byteOffset": 20736,
-            "componentType": 5126,
-            "count": 1728,
-            "type": "VEC3",
-            "name": "accessorNormals"
-        },
-        {
-            "bufferView": 2,
-            "componentType": 5126,
-            "count": 1728,
-            "type": "VEC2",
-            "name": "accessorUVs"
+            "byteOffset": 0,
+            "componentType": 5123,
+            "count": 23814,
+            "type": "SCALAR"
         }
     ],
     "bufferViews": [
         {
             "buffer": 0,
-            "byteLength": 18432,
-            "name": "bufferViewScalar",
+            "byteOffset": 0,
+            "byteLength": 131072,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 131072,
+            "byteLength": 47628,
             "target": 34963
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 18432,
-            "byteLength": 41472,
-            "byteStride": 12,
-            "name": "bufferViewFloatVec3",
-            "target": 34962
-        },
-        {
-            "buffer": 0,
-            "byteOffset": 59904,
-            "byteLength": 13824,
-            "byteStride": 8,
-            "name": "bufferViewFloatVec2",
-            "target": 34962
         }
     ],
     "buffers": [
         {
             "uri": "sphere.bin",
-            "byteLength": 73728
+            "byteLength": 178700
         }
     ],
-    "materials": [
+    "images": [
         {
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [
-                    0.8,
-                    0.2,
-                    0.0,
-                    1.0
-                ],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.9
-            },
-            "normalTexture": {
-                "index": 0,
-                "scale": 0.2,
-                "extensions": {
-                    "KHR_texture_transform": {
-                        "scale": [
-                            3,
-                            3
-                        ]
-                    }
-                }
-            },
-            "doubleSided": false,
-            "name": "Sphere"
+            "uri": "mars_texture.jpg"
         }
     ],
     "textures": [
         {
             "sampler": 0,
             "source": 0,
-            "name": "sphere_normal.png"
-        }
-    ],
-    "images": [
-        {
-            "uri": "sphere_normal.png"
+            "name": "mars_baseColor"
         }
     ],
     "samplers": [

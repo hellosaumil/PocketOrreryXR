@@ -37,16 +37,13 @@
         {
             "pbrMetallicRoughness": {
                 "baseColorFactor": [
-                    1.0,
-                    1.0,
-                    1.0,
-                    1.0
+                    1,
+                    1,
+                    1,
+                    1
                 ],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.6,
-                "baseColorTexture": {
-                    "index": 0
-                }
+                "metallicFactor": 0,
+                "roughnessFactor": 0.5
             },
             "name": "Default"
         }
@@ -109,24 +106,6 @@
         {
             "uri": "sphere.bin",
             "byteLength": 178700
-        }
-    ],
-    "images": [
-        {
-            "uri": "neptune_texture.jpg"
-        }
-    ],
-    "textures": [
-        {
-            "sampler": 0,
-            "source": 0,
-            "name": "neptune_baseColor"
-        }
-    ],
-    "samplers": [
-        {
-            "magFilter": 9729,
-            "minFilter": 9987
         }
     ]
 }

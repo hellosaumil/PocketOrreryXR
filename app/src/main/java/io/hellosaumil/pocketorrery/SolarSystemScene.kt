@@ -84,9 +84,9 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                     sunEntity = GltfModelEntity.create(
                         session,
                         sunModel,
-                        Pose(translation = Vector3(0f, 0f, -1.0f))
+                        Pose(translation = Vector3(0f, 0f, -0.5f))
                     ).apply {
-                        setScale(0.2f) // 20cm diameter for sun
+                        setScale(0.4f) // 40cm diameter for sun
                         val movableComponent = MovableComponent.createSystemMovable(session, scaleInZ = false)
                         addComponent(movableComponent)
                     }
