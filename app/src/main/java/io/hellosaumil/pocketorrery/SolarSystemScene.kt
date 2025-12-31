@@ -43,54 +43,66 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     // Animation time state
     var animationTime by remember { mutableFloatStateOf(0f) }
     
-    // State for loaded model
-    var sphereModel by remember { mutableStateOf<GltfModel?>(null) }
+    // State for loaded models
+    var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
     var entities by remember { mutableStateOf<Map<Planet, GltfModelEntity>>(emptyMap()) }
     
-    // Load the sphere model asynchronously
+    // Load models asynchronously
     LaunchedEffect(session) {
-        try {
-            sphereModel = GltfModel.create(
-                session,
-                Path("models/sphere.gltf")
-            )
-            android.util.Log.d("SolarSystemScene", "sphere.gltf loaded successfully")
-        } catch (e: Exception) {
-            android.util.Log.e("SolarSystemScene", "Failed to load sphere model", e)
+        val loadedModels = mutableMapOf<Planet, GltfModel>()
+        SolarSystemRepository.allBodies.forEach { planet ->
+             try {
+                // "Sun ☀️" -> "sun". "Earth 🌎" -> "earth"
+                val name = planet.name.lowercase().split(" ")[0]
+                val filename = if (name == "sun") "sun.gltf" else "$name.gltf"
+                
+                val model = GltfModel.create(
+                    session,
+                    Path("models/$filename")
+                )
+                loadedModels[planet] = model
+                android.util.Log.d("SolarSystemScene", "Loaded $filename for ${planet.name}")
+            } catch (e: Exception) {
+                android.util.Log.e("SolarSystemScene", "Failed to load model for ${planet.name}", e)
+            }
         }
+        models = loadedModels
     }
     
-    // Create entities when model is loaded
-    DisposableEffect(sphereModel) {
-        val model = sphereModel
-        if (model != null) {
+    // Create entities when models are loaded
+    DisposableEffect(models) {
+        if (models.isNotEmpty()) {
             val newEntities = mutableMapOf<Planet, GltfModelEntity>()
             
-            try {
-                // Create Sun entity - acting as the Root for the system
-                // Start 1.0m in front of the user (moved closer from 1.5m)
-                // Base Scale of Sun is 0.2
-                val sunEntity = GltfModelEntity.create(
-                    session,
-                    model,
-                    Pose(translation = Vector3(0f, 0f, -1.0f))
-                ).apply {
-                    setScale(0.2f) // 20cm diameter for sun
-                    
-                    // Make sun draggable to move the entire solar system
-                    // scaleInZ=false prevents uncontrolled scaling. Use Slider instead.
-                    val movableComponent = MovableComponent.createSystemMovable(session, scaleInZ = false)
-                    addComponent(movableComponent)
+            // 1. Create Sun first (Root)
+            val sunModel = models[SolarSystemRepository.sol]
+            var sunEntity: GltfModelEntity? = null
+            
+            if (sunModel != null) {
+                try {
+                    // Start 1.0m in front of the user
+                    sunEntity = GltfModelEntity.create(
+                        session,
+                        sunModel,
+                        Pose(translation = Vector3(0f, 0f, -1.0f))
+                    ).apply {
+                        setScale(0.2f) // 20cm diameter for sun
+                        val movableComponent = MovableComponent.createSystemMovable(session, scaleInZ = false)
+                        addComponent(movableComponent)
+                    }
+                    newEntities[SolarSystemRepository.sol] = sunEntity!!
+                    android.util.Log.d("SolarSystemScene", "Sun entity created")
+                } catch (e: Exception) {
+                    android.util.Log.e("SolarSystemScene", "Failed to create Sun entity", e)
                 }
-                newEntities[SolarSystemRepository.sol] = sunEntity
-                
-                android.util.Log.d("SolarSystemScene", "Sun entity created with MovableComponent (Root)")
-                
-                // Create planet entities
+            }
+            
+            // 2. Create other planets
+            val rootEntity = sunEntity // Parent everything to Sun
+            if (rootEntity != null) {
                 SolarSystemRepository.planets.forEach { planet ->
+                    val model = models[planet] ?: return@forEach
                     try {
-                        // Compensate for Sun's scale (0.2)
-                        // Sun Scale = 0.2. Child Pos = World Pos / 0.2.
                         val initialX = (planet.orbitDistance * 0.1f) / 0.2f
                         
                         val entity = GltfModelEntity.create(
@@ -98,11 +110,7 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                             model,
                             Pose(translation = Vector3(initialX, 0f, 0f))
                         ).apply {
-                            // Parent to Sun so they move with it
-                            sunEntity.addChild(this)
-                            
-                            // Scale planets: 2cm base + up to 9cm based on radius
-                            // Compensate for Sun's scale (0.2) so their size is preserved in world space
+                            rootEntity.addChild(this)
                             setScale((0.02f + planet.radius * 0.15f) / 0.2f)
                         }
                         newEntities[planet] = entity
@@ -110,12 +118,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                         android.util.Log.e("SolarSystemScene", "Failed to create entity for ${planet.name}", e)
                     }
                 }
-                
-                entities = newEntities
-                
-            } catch (e: Exception) {
-                android.util.Log.e("SolarSystemScene", "Failed to create sun entity", e)
             }
+            entities = newEntities
         }
         
         onDispose {
