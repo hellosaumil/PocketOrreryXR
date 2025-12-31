@@ -152,24 +152,42 @@ fun My2DContent(
 @Composable
 fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    
+
+    DashboardContent(
+        uiState = uiState,
+        onTogglePause = { viewModel.togglePause() },
+        onSetScale = { viewModel.setScale(it) },
+        onSelectPlanet = { viewModel.selectPlanet(it) },
+        modifier = modifier
+    )
+}
+
+@Composable
+fun DashboardContent(
+    uiState: SolarSystemUiState,
+    onTogglePause: () -> Unit,
+    onSetScale: (Float) -> Unit,
+    onSelectPlanet: (Planet) -> Unit,
+    modifier: Modifier = Modifier,
+    planets: List<Planet> = SolarSystemRepository.allBodies
+) {
     Column(modifier = modifier) {
         Text("Pocket Orrery", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(onClick = { viewModel.togglePause() }) {
+
+        Button(onClick = onTogglePause) {
             Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text("System Scale: ${String.format("%.1f", uiState.scale)}x", style = MaterialTheme.typography.bodyMedium)
         androidx.compose.material3.Slider(
             value = uiState.scale,
-            onValueChange = { viewModel.setScale(it) },
+            onValueChange = onSetScale,
             valueRange = 0.5f..5.0f
         )
-        
+
         // Show selected planet info
         uiState.selectedPlanet?.let { planet ->
             Spacer(modifier = Modifier.height(16.dp))
@@ -186,17 +204,17 @@ fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
         Text("Planets", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(SolarSystemRepository.allBodies) { planet ->
+            items(planets) { planet ->
                 PlanetItem(
                     planet = planet,
                     isSelected = uiState.selectedPlanet == planet,
-                    onClick = { viewModel.selectPlanet(planet) }
+                    onClick = { onSelectPlanet(planet) }
                 )
             }
         }
@@ -244,6 +262,37 @@ fun HomeSpaceModeIconButton(onClick: () -> Unit, modifier: Modifier = Modifier) 
         Icon(
             painter = painterResource(id = R.drawable.ic_home_space_mode_switch),
             contentDescription = stringResource(R.string.switch_to_home_space_mode)
+        )
+    }
+}
+
+@Preview(showBackground = true, widthDp = 320, heightDp = 600)
+@Composable
+private fun DashboardPreview() {
+    PocketOrreryTheme {
+        Surface {
+            DashboardContent(
+                uiState = SolarSystemUiState(
+                    scale = 1.0f,
+                    selectedPlanet = SolarSystemRepository.planets.find { it.name == "Earth" }
+                ),
+                onTogglePause = {},
+                onSetScale = {},
+                onSelectPlanet = {},
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PlanetItemPreview() {
+    PocketOrreryTheme {
+        PlanetItem(
+            planet = SolarSystemRepository.planets[2], // Earth
+            isSelected = true,
+            onClick = {}
         )
     }
 }

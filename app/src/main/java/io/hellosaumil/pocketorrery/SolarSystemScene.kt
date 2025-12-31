@@ -18,6 +18,8 @@ import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.MovableComponent
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import kotlin.io.path.Path
 import kotlin.math.cos
 import kotlin.math.sin
@@ -26,8 +28,18 @@ import kotlin.math.sin
 @Composable
 fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val session = LocalSession.current ?: return
+    val session = LocalSession.current
     
+    if (session == null) {
+        // Fallback for Preview
+        androidx.compose.material3.Text(
+            text = "3D Solar System Scene\n(Not available in standard Preview)",
+            modifier = androidx.compose.ui.Modifier.padding(16.dp),
+            color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
+        )
+        return
+    }
+
     // Animation time state
     var animationTime by remember { mutableFloatStateOf(0f) }
     
@@ -40,9 +52,9 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         try {
             sphereModel = GltfModel.create(
                 session,
-                Path("models/sphere.glb")
+                Path("models/sphere.gltf")
             )
-            android.util.Log.d("SolarSystemScene", "Sphere model loaded successfully")
+            android.util.Log.d("SolarSystemScene", "sphere.gltf loaded successfully")
         } catch (e: Exception) {
             android.util.Log.e("SolarSystemScene", "Failed to load sphere model", e)
         }
@@ -112,24 +124,29 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     }
     
     // Handle selected planet highlighting and system scaling
+    // This effect now frame-locks the scale to prevent uncontrolled pinch-scaling
     LaunchedEffect(uiState.selectedPlanet, uiState.scale, entities) {
-        entities.forEach { (planet, entity) ->
-            val isSelected = uiState.selectedPlanet == planet
+        if (entities.isEmpty()) return@LaunchedEffect
+        
+        while(true) {
+            withFrameMillis { } // Sync with frame
+            
             val globalScale = uiState.scale
-            
-            val scale = if (planet == SolarSystemRepository.sol) {
-                // Sun: Apply global scale. No selection multiplier.
-                // Base 0.2 scales with globalScale.
-                0.2f * globalScale
-            } else {
-                // Planets: Compensate for Sun's base scale (0.2).
-                // Global scale is inherited from parent (Sun).
-                // So we only set the LOCAL scale relative to the Sun's 0.2 factor.
-                val base = (0.02f + planet.radius * 0.15f) / 0.2f
-                if (isSelected) base * 1.5f else base
+            entities.forEach { (planet, entity) ->
+                val isSelected = uiState.selectedPlanet == planet
+                
+                val targetScale = if (planet == SolarSystemRepository.sol) {
+                    // Sun: Apply global scale. No selection multiplier.
+                    0.2f * globalScale
+                } else {
+                    // Planets: Compensate for Sun's base scale (0.2).
+                    val base = (0.02f + planet.radius * 0.15f) / 0.2f
+                    if (isSelected) base * 1.5f else base
+                }
+                
+                // Enforce scale precisely to override any component-level scaling
+                entity.setScale(targetScale)
             }
-            
-            entity.setScale(scale)
         }
     }
     
@@ -165,5 +182,18 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
+@Composable
+private fun SolarSystemScenePreview() {
+    io.hellosaumil.pocketorrery.ui.theme.PocketOrreryTheme {
+        // We can't truly preview the ViewModel-driven scene without mocking the VM,
+        // but since we return early when session is null, an empty VM or mock is fine just to show the placeholder.
+        // For simplicity in this preview, we just call it. The ViewModel creation might effectively be "empty" or throw if not handled carefully,
+        // but normally viewModel() works in preview if it has a no-arg constructor or we use valid composition locals.
+        // SolarSystemViewModel has a default constructor so it should work.
+        SolarSystemScene(viewModel = androidx.lifecycle.viewmodel.compose.viewModel())
     }
 }
