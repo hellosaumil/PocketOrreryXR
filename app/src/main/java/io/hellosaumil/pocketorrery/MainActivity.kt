@@ -161,6 +161,15 @@ fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
             Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
         }
         
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Text("System Scale: ${String.format("%.1f", uiState.scale)}x", style = MaterialTheme.typography.bodyMedium)
+        androidx.compose.material3.Slider(
+            value = uiState.scale,
+            onValueChange = { viewModel.setScale(it) },
+            valueRange = 0.5f..5.0f
+        )
+        
         // Show selected planet info
         uiState.selectedPlanet?.let { planet ->
             Spacer(modifier = Modifier.height(16.dp))
