@@ -172,7 +172,7 @@ fun DashboardContent(
     planets: List<Planet> = SolarSystemRepository.allBodies
 ) {
     Column(modifier = modifier) {
-        Text("Pocket Orrery", style = MaterialTheme.typography.headlineMedium)
+        Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = onTogglePause) {
