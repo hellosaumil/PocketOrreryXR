@@ -68,12 +68,12 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
             
             try {
                 // Create Sun entity - acting as the Root for the system
-                // Start 1.5m in front of the user
+                // Start 1.0m in front of the user (moved closer from 1.5m)
                 // Base Scale of Sun is 0.2
                 val sunEntity = GltfModelEntity.create(
                     session,
                     model,
-                    Pose(translation = Vector3(0f, 0f, -1.5f))
+                    Pose(translation = Vector3(0f, 0f, -1.0f))
                 ).apply {
                     setScale(0.2f) // 20cm diameter for sun
                     
