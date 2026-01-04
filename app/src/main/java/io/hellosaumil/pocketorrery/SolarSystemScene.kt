@@ -42,6 +42,12 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
 
     // Animation time state
     var animationTime by remember { mutableFloatStateOf(0f) }
+
+    // Smooth scaling
+    val animatedScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = uiState.scale,
+        label = "scaleAnimation"
+    )
     
     // State for loaded models
     var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
@@ -129,13 +135,13 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     
     // Handle selected planet highlighting and system scaling
     // This effect now frame-locks the scale to prevent uncontrolled pinch-scaling
-    LaunchedEffect(uiState.selectedPlanet, uiState.scale, entities) {
+    LaunchedEffect(uiState.selectedPlanet, entities) {
         if (entities.isEmpty()) return@LaunchedEffect
         
         while(true) {
             withFrameMillis { } // Sync with frame
             
-            val globalScale = uiState.scale
+            val globalScale = animatedScale
             entities.forEach { (planet, entity) ->
                 val isSelected = uiState.selectedPlanet == planet
                 

@@ -56,6 +56,7 @@ import androidx.xr.compose.subspace.ResizePolicy
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.width
+import androidx.xr.compose.subspace.layout.offset
 import io.hellosaumil.pocketorrery.ui.theme.PocketOrreryTheme
 
 class MainActivity : ComponentActivity() {
@@ -99,7 +100,7 @@ fun MySpatialContent(
     onRequestHomeSpaceMode: () -> Unit
 ) {
     SpatialPanel(
-        modifier = SubspaceModifier.width(320.dp).height(700.dp),
+        modifier = SubspaceModifier.offset(x = 600.dp).width(320.dp).height(700.dp),
         dragPolicy = MovePolicy(),
         resizePolicy = ResizePolicy()
     ) {
@@ -185,7 +186,8 @@ fun DashboardContent(
         androidx.compose.material3.Slider(
             value = uiState.scale,
             onValueChange = onSetScale,
-            valueRange = 0.5f..5.0f
+            valueRange = 0.5f..5.0f,
+            steps = 8
         )
 
         // Show selected planet info
