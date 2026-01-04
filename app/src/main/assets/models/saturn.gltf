@@ -48,7 +48,15 @@
                     "index": 0
                 }
             },
-            "name": "Default"
+            "name": "Default",
+            "emissiveFactor": [
+                0.5,
+                0.5,
+                0.5
+            ],
+            "emissiveTexture": {
+                "index": 0
+            }
         }
     ],
     "accessors": [
