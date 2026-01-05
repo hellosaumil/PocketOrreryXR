@@ -8,9 +8,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +40,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -76,11 +89,16 @@ class MainActivity : ComponentActivity() {
                         // The 3D Scene
                         SolarSystemScene(viewModel = viewModel)
                         
-                        // The 2D Control Panel
-                        MySpatialContent(
-                            viewModel = viewModel,
-                            onRequestHomeSpaceMode = spatialConfiguration::requestHomeSpaceMode
-                        )
+                        // Startup Text Overlay
+                        StartupText3D(viewModel = viewModel)
+                        
+                        // The 2D Control Panel - Only show when startup is finished
+                        if (viewModel.uiState.collectAsStateWithLifecycle().value.startupState == StartupState.Finished) {
+                            MySpatialContent(
+                                viewModel = viewModel,
+                                onRequestHomeSpaceMode = spatialConfiguration::requestHomeSpaceMode
+                            )
+                        }
                     }
                 } else {
                     My2DContent(
@@ -99,14 +117,21 @@ fun MySpatialContent(
     viewModel: SolarSystemViewModel,
     onRequestHomeSpaceMode: () -> Unit
 ) {
+    var isPlanetListExpanded by remember { mutableStateOf(false) }
+    
     SpatialPanel(
-        modifier = SubspaceModifier.offset(x = 600.dp).width(320.dp).height(700.dp),
+        // Dynamic height based on expansion state
+        modifier = SubspaceModifier.offset(x = 500.dp, z = (-200).dp)
+            .width(320.dp)
+            .height(if (isPlanetListExpanded) 700.dp else 300.dp),
         dragPolicy = MovePolicy(),
         resizePolicy = ResizePolicy()
     ) {
         Surface {
             Dashboard(
                 viewModel = viewModel,
+                isExpanded = isPlanetListExpanded,
+                onToggleExpand = { isPlanetListExpanded = !isPlanetListExpanded },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(24.dp)
@@ -137,7 +162,12 @@ fun My2DContent(
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Dashboard(viewModel = viewModel, modifier = Modifier.weight(1f).padding(48.dp))
+            Dashboard(
+                viewModel = viewModel,
+                isExpanded = true,
+                onToggleExpand = { /* No-op in 2D mode or implement local state if needed */ },
+                modifier = Modifier.weight(1f).padding(48.dp)
+            )
             
             // Preview does not current support XR sessions.
             if (!LocalInspectionMode.current && LocalSession.current != null) {
@@ -151,7 +181,12 @@ fun My2DContent(
 }
 
 @Composable
-fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
+fun Dashboard(
+    viewModel: SolarSystemViewModel,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     DashboardContent(
@@ -159,6 +194,9 @@ fun Dashboard(viewModel: SolarSystemViewModel, modifier: Modifier = Modifier) {
         onTogglePause = { viewModel.togglePause() },
         onSetScale = { viewModel.setScale(it) },
         onSelectPlanet = { viewModel.selectPlanet(it) },
+        onAdvanceState = { viewModel.advanceStartupState() },
+        isExpanded = isExpanded,
+        onToggleExpand = onToggleExpand,
         modifier = modifier
     )
 }
@@ -169,16 +207,21 @@ fun DashboardContent(
     onTogglePause: () -> Unit,
     onSetScale: (Float) -> Unit,
     onSelectPlanet: (Planet) -> Unit,
+    onAdvanceState: () -> Unit,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier,
     planets: List<Planet> = SolarSystemRepository.allBodies
 ) {
+    // Startup sequence is now handled by StartupText3D in Subspace
+    
     Column(modifier = modifier) {
-        Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = onTogglePause) {
-            Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
-        }
+            Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+    
+            Button(onClick = onTogglePause) {
+                Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
+            }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -190,38 +233,67 @@ fun DashboardContent(
             steps = 8
         )
 
-        // Show selected planet info
-        uiState.selectedPlanet?.let { planet ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text(planet.name, style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(planet.description, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-
+        // Show selected planet info OR instructions
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Planets", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onToggleExpand() }
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Planets", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand"
+            )
+        }
+        
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+             Column {
+                // Show selected planet info OR instructions
+                Spacer(modifier = Modifier.height(8.dp))
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        if (uiState.selectedPlanet != null) {
+                            Text(uiState.selectedPlanet!!.name, style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(uiState.selectedPlanet!!.description, style = MaterialTheme.typography.bodySmall)
+                        } else {
+                            Text("Select a Planet", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Select a planet from the list below to view details.", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(planets) { planet ->
-                PlanetItem(
-                    planet = planet,
-                    isSelected = uiState.selectedPlanet == planet,
-                    onClick = { onSelectPlanet(planet) }
-                )
-            }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(planets) { planet ->
+                        PlanetItem(
+                            planet = planet,
+                            isSelected = uiState.selectedPlanet == planet,
+                            onClick = { onSelectPlanet(planet) }
+                        )
+                    }
+                }
+             }
         }
     }
 }
+
 
 @Composable
 fun PlanetItem(planet: Planet, isSelected: Boolean, onClick: () -> Unit) {
@@ -281,6 +353,9 @@ private fun DashboardPreview() {
                 onTogglePause = {},
                 onSetScale = {},
                 onSelectPlanet = {},
+                onAdvanceState = {},
+                isExpanded = true,
+                onToggleExpand = {},
                 modifier = Modifier.padding(16.dp)
             )
         }
@@ -296,5 +371,64 @@ private fun PlanetItemPreview() {
             isSelected = true,
             onClick = {}
         )
+    }
+}
+
+@SuppressLint("RestrictedApi")
+@Composable
+fun StartupText3D(
+    viewModel: SolarSystemViewModel
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    if (uiState.startupState != StartupState.Finished && uiState.startupState != StartupState.Reveal) {
+         SpatialPanel(
+            modifier = SubspaceModifier.offset(z = -1.2f.dp, y = 0.0f.dp).width(800.dp).height(400.dp),
+            dragPolicy = MovePolicy(),
+            resizePolicy = ResizePolicy()
+        ) {
+             // Transparent surface for floating text effect
+             Surface(color = androidx.compose.ui.graphics.Color.Transparent) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = uiState.startupState == StartupState.Welcome,
+                        enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(1000)),
+                        exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(1000))
+                    ) {
+                        Text(
+                            "Welcome to the Future of Computing",
+                            style = MaterialTheme.typography.displayMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
+
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = uiState.startupState == StartupState.Author,
+                        enter = fadeIn(animationSpec = androidx.compose.animation.core.tween(1000)),
+                        exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(1000))
+                    ) {
+                        Text(
+                            "PocketOrrery\nby Saumil Shah",
+                            style = MaterialTheme.typography.displayMedium,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = androidx.compose.ui.graphics.Color.White
+                        )
+                    }
+                }
+             }
+        }
+    }
+
+    // Drive the sequence - runs independently of UI visibility
+    LaunchedEffect(uiState.startupState) {
+        if (uiState.startupState != StartupState.Finished) {
+            val pauseTime = 3000L // Time to read the text
+            delay(pauseTime)
+            viewModel.advanceStartupState()
+        }
     }
 }

@@ -48,6 +48,13 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         targetValue = uiState.scale,
         label = "scaleAnimation"
     )
+
+    // Startup Reveal Animation
+    val startupScale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (uiState.startupState == StartupState.Reveal || uiState.startupState == StartupState.Finished) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 3000, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+        label = "startupReveal"
+    )
     
     // State for loaded models
     var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
@@ -92,7 +99,7 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                         sunModel,
                         Pose(translation = Vector3(0f, 0f, -0.5f))
                     ).apply {
-                        setScale(0.4f) // 40cm diameter for sun
+                        setScale(0f) // Start invisible, will scale up via animation
                         val movableComponent = MovableComponent.createSystemMovable(session, scaleInZ = false)
                         addComponent(movableComponent)
                     }
@@ -117,7 +124,7 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                             Pose(translation = Vector3(initialX, 0f, 0f))
                         ).apply {
                             rootEntity.addChild(this)
-                            setScale((0.02f + planet.radius * 0.15f) / 0.2f)
+                            setScale(0f) // Start invisible, will scale up via animation
                         }
                         newEntities[planet] = entity
                     } catch (e: Exception) {
@@ -141,17 +148,30 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         while(true) {
             withFrameMillis { } // Sync with frame
             
-            val globalScale = animatedScale
+            // Effective scale combines user setting and startup animation
+            val globalScale = animatedScale * startupScale
+            
+            // Determine Sun Swell Factor (1.5 if selected)
+            val isSunSelected = uiState.selectedPlanet == SolarSystemRepository.sol
+            val sunSwellFactor = if (isSunSelected) 1.5f else 1.0f
+            
             entities.forEach { (planet, entity) ->
                 val isSelected = uiState.selectedPlanet == planet
                 
                 val targetScale = if (planet == SolarSystemRepository.sol) {
-                    // Sun: Apply global scale. No selection multiplier.
-                    0.2f * globalScale
+                    // Sun: Apply global scale, AND selection multiplier if selected.
+                    val base = 0.2f * globalScale
+                    base * sunSwellFactor
                 } else {
-                    // Planets: Compensate for Sun's base scale (0.2).
-                    val base = (0.02f + planet.radius * 0.15f) / 0.2f
-                    if (isSelected) base * 1.5f else base
+                    // Planets:
+                    // 1. Calculate Base Size (unchanged)
+                    val baseSize = (0.02f + planet.radius * 0.15f) / 0.2f
+                    
+                    // 2. Counter-Scale: Divide by sunSwellFactor to cancel out parent scaling
+                    val counterScaledSize = baseSize / sunSwellFactor
+                    
+                    // 3. Apply Selection: Multiply by 1.5 if selected
+                    if (isSelected) counterScaledSize * 1.5f else counterScaledSize
                 }
                 
                 // Enforce scale precisely to override any component-level scaling
@@ -172,6 +192,10 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                 val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
                 animationTime = baseTime + elapsedTime
                 
+                // Determine Sun Swell for Position Counter-Scaling
+                val isSunSelected = uiState.selectedPlanet == SolarSystemRepository.sol
+                val sunSwellFactor = if (isSunSelected) 1.5f else 1.0f
+                
                 // Update planet positions (orbiting around Sun (0,0,0) local space)
                 entities.forEach { (planet, entity) ->
                     // Sun doesn't orbit itself
@@ -180,8 +204,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                     }
                     
                     val angle = animationTime * planet.orbitSpeed * 0.3f
-                    // Compensate for Sun's scale (0.2)
-                    val distance = (planet.orbitDistance * 0.1f) / 0.2f
+                    // Compensate for Sun's scale (0.2) AND Sun's Swell Factor
+                    val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
                     
                     val x = cos(angle) * distance
                     val z = sin(angle) * distance

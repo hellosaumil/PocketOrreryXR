@@ -9,8 +9,16 @@ import kotlinx.coroutines.flow.update
 data class SolarSystemUiState(
     val selectedPlanet: Planet? = null,
     val isPaused: Boolean = false,
-    val scale: Float = 1.0f
+    val scale: Float = 1.0f,
+    val startupState: StartupState = StartupState.Welcome
 )
+
+enum class StartupState {
+    Welcome, // "Welcome to the Future of Computing"
+    Author,  // "PocketOrrery by Saumil Shah"
+    Reveal,  // Solar system scales up
+    Finished // Normal operation
+}
 
 class SolarSystemViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SolarSystemUiState())
@@ -28,5 +36,15 @@ class SolarSystemViewModel : ViewModel() {
     
     fun setScale(scale: Float) {
         _uiState.update { it.copy(scale = scale) }
+    }
+
+    fun advanceStartupState() {
+        val nextState = when (_uiState.value.startupState) {
+            StartupState.Welcome -> StartupState.Author
+            StartupState.Author -> StartupState.Reveal
+            StartupState.Reveal -> StartupState.Finished
+            StartupState.Finished -> StartupState.Finished
+        }
+        _uiState.update { it.copy(startupState = nextState) }
     }
 }
