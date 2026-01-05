@@ -1,0 +1,146 @@
+{
+    "asset": {
+        "version": "2.0",
+        "generator": "Python Skybox Gen"
+    },
+    "extensionsUsed": [
+        "KHR_materials_unlit"
+    ],
+    "extensionsRequired": [
+        "KHR_materials_unlit"
+    ],
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [
+                0
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "name": "Skybox"
+        }
+    ],
+    "meshes": [
+        {
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2
+                    },
+                    "indices": 3,
+                    "material": 0
+                }
+            ],
+            "name": "Skybox"
+        }
+    ],
+    "materials": [
+        {
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                "metallicFactor": 0,
+                "roughnessFactor": 1,
+                "baseColorTexture": {
+                    "index": 0
+                }
+            },
+            "extensions": {
+                "KHR_materials_unlit": {}
+            },
+            "doubleSided": true,
+            "name": "SkyboxMaterial"
+        }
+    ],
+    "textures": [
+        {
+            "source": 0
+        }
+    ],
+    "images": [
+        {
+            "uri": "milky_way_texture.jpg"
+        }
+    ],
+    "accessors": [
+        {
+            "bufferView": 0,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 4096,
+            "type": "VEC3",
+            "max": [
+                50.0,
+                50.0,
+                50.0
+            ],
+            "min": [
+                -50.0,
+                -50.0,
+                -50.0
+            ]
+        },
+        {
+            "bufferView": 1,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 4096,
+            "type": "VEC3"
+        },
+        {
+            "bufferView": 2,
+            "byteOffset": 0,
+            "componentType": 5126,
+            "count": 4096,
+            "type": "VEC2"
+        },
+        {
+            "bufferView": 3,
+            "byteOffset": 0,
+            "componentType": 5123,
+            "count": 23814,
+            "type": "SCALAR"
+        }
+    ],
+    "bufferViews": [
+        {
+            "buffer": 0,
+            "byteOffset": 0,
+            "byteLength": 49152,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 49152,
+            "byteLength": 49152,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 98304,
+            "byteLength": 32768,
+            "target": 34962
+        },
+        {
+            "buffer": 0,
+            "byteOffset": 131072,
+            "byteLength": 47628,
+            "target": 34963
+        }
+    ],
+    "buffers": [
+        {
+            "uri": "milky_way.bin",
+            "byteLength": 178700
+        }
+    ]
+}

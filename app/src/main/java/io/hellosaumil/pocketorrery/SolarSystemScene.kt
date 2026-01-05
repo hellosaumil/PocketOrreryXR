@@ -60,9 +60,23 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
     var entities by remember { mutableStateOf<Map<Planet, GltfModelEntity>>(emptyMap()) }
     
+    // Skybox State
+    var skyboxModel by remember { mutableStateOf<GltfModel?>(null) }
+    var skyboxEntity by remember { mutableStateOf<GltfModelEntity?>(null) }
+    
     // Load models asynchronously
     LaunchedEffect(session) {
         val loadedModels = mutableMapOf<Planet, GltfModel>()
+        
+        // Load Skybox
+        try {
+            val skybox = GltfModel.create(session, Path("models/milky_way.gltf"))
+            skyboxModel = skybox
+            android.util.Log.d("SolarSystemScene", "Loaded milky_way.gltf")
+        } catch (e: Exception) {
+            android.util.Log.e("SolarSystemScene", "Failed to load skybox", e)
+        }
+
         SolarSystemRepository.allBodies.forEach { planet ->
              try {
                 // "Sun ☀️" -> "sun". "Earth 🌎" -> "earth"
@@ -82,6 +96,29 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         models = loadedModels
     }
     
+    // Create Skybox Entity - Controlled by Toggle
+    DisposableEffect(skyboxModel, uiState.isSkyboxEnabled) {
+        if (skyboxModel != null && uiState.isSkyboxEnabled) {
+            try {
+                // Background at 0,0,0, not movable, large scale handled by model (radius 50 m)
+                // Inverted faces allow viewing from inside.
+                skyboxEntity = GltfModelEntity.create(
+                    session,
+                    skyboxModel!!,
+                    Pose(translation = Vector3(0f, 0f, 0f))
+                )
+                android.util.Log.d("SolarSystemScene", "Skybox entity created")
+            } catch (e: Exception) {
+                android.util.Log.e("SolarSystemScene", "Failed to create Skybox entity", e)
+            }
+        }
+        
+        onDispose {
+            skyboxEntity?.dispose()
+            skyboxEntity = null
+        }
+    }
+
     // Create entities when models are loaded
     DisposableEffect(models) {
         if (models.isNotEmpty()) {

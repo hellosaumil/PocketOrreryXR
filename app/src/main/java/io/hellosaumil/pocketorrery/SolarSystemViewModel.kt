@@ -10,7 +10,8 @@ data class SolarSystemUiState(
     val selectedPlanet: Planet? = null,
     val isPaused: Boolean = false,
     val scale: Float = 1.0f,
-    val startupState: StartupState = StartupState.Welcome
+    val startupState: StartupState = StartupState.Welcome,
+    val isSkyboxEnabled: Boolean = true
 )
 
 enum class StartupState {
@@ -32,6 +33,10 @@ class SolarSystemViewModel : ViewModel() {
 
     fun togglePause() {
         _uiState.update { it.copy(isPaused = !it.isPaused) }
+    }
+    
+    fun toggleSkybox() {
+        _uiState.update { it.copy(isSkyboxEnabled = !it.isSkyboxEnabled) }
     }
     
     fun setScale(scale: Float) {

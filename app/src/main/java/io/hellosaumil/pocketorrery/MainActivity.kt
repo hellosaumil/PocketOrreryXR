@@ -193,6 +193,7 @@ fun Dashboard(
         uiState = uiState,
         onTogglePause = { viewModel.togglePause() },
         onSetScale = { viewModel.setScale(it) },
+        onToggleSkybox = { viewModel.toggleSkybox() },
         onSelectPlanet = { viewModel.selectPlanet(it) },
         onAdvanceState = { viewModel.advanceStartupState() },
         isExpanded = isExpanded,
@@ -206,6 +207,7 @@ fun DashboardContent(
     uiState: SolarSystemUiState,
     onTogglePause: () -> Unit,
     onSetScale: (Float) -> Unit,
+    onToggleSkybox: () -> Unit,
     onSelectPlanet: (Planet) -> Unit,
     onAdvanceState: () -> Unit,
     isExpanded: Boolean,
@@ -232,6 +234,19 @@ fun DashboardContent(
             valueRange = 0.5f..5.0f,
             steps = 8
         )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Galaxy Background", style = MaterialTheme.typography.bodyMedium)
+            Spacer(modifier = Modifier.weight(1f))
+            androidx.compose.material3.Switch(
+                checked = uiState.isSkyboxEnabled,
+                onCheckedChange = { onToggleSkybox() }
+            )
+        }
 
         // Show selected planet info OR instructions
         Spacer(modifier = Modifier.height(16.dp))
@@ -352,6 +367,7 @@ private fun DashboardPreview() {
                 ),
                 onTogglePause = {},
                 onSetScale = {},
+                onToggleSkybox = {},
                 onSelectPlanet = {},
                 onAdvanceState = {},
                 isExpanded = true,
