@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
+/**
+ * UI State for the Solar System screen.
+ */
 data class SolarSystemUiState(
     val selectedPlanet: Planet? = null,
     val isPaused: Boolean = false,
@@ -14,6 +17,9 @@ data class SolarSystemUiState(
     val isSkyboxEnabled: Boolean = true
 )
 
+/**
+ * Defines the states for the initial startup sequence of the application.
+ */
 enum class StartupState {
     Welcome, // "Welcome to the Future of Computing"
     Author,  // "PocketOrrery by Saumil Shah"
@@ -21,6 +27,12 @@ enum class StartupState {
     Finished // Normal operation
 }
 
+/**
+ * ViewModel responsible for managing the state of the Solar System.
+ *
+ * It handles logic for selecting planets, pausing the simulation, 
+ * adjusting scale, and controlling the startup sequence.
+ */
 class SolarSystemViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SolarSystemUiState())
     val uiState: StateFlow<SolarSystemUiState> = _uiState.asStateFlow()

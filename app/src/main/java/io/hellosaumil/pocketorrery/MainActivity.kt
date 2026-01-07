@@ -72,6 +72,12 @@ import androidx.xr.compose.subspace.layout.width
 import androidx.xr.compose.subspace.layout.offset
 import io.hellosaumil.pocketorrery.ui.theme.PocketOrreryTheme
 
+/**
+ * Main entry point for the Pocket Orrery application.
+ *
+ * This activity handles the transition between 2D and Spatial (XR) modes,
+ * manages the high-level UI structure, and initializes the Solar System ViewModel.
+ */
 class MainActivity : ComponentActivity() {
 
     @SuppressLint("RestrictedApi")
@@ -111,6 +117,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Container for UI elements when the app is running in Spatial (XR) mode.
+ *
+ * @param viewModel The shared Solar System view model.
+ * @param onRequestHomeSpaceMode Callback to request switching back to Home Space mode.
+ */
 @SuppressLint("RestrictedApi")
 @Composable
 fun MySpatialContent(
@@ -151,6 +163,12 @@ fun MySpatialContent(
     }
 }
 
+/**
+ * Container for UI elements when the app is running in standard 2D mode.
+ *
+ * @param viewModel The shared Solar System view model.
+ * @param onRequestFullSpaceMode Callback to request switching to Full Space (XR) mode.
+ */
 @SuppressLint("RestrictedApi")
 @Composable
 fun My2DContent(
@@ -180,6 +198,9 @@ fun My2DContent(
     }
 }
 
+/**
+ * High-level Dashboard component that connects the UI state to the ViewModel.
+ */
 @Composable
 fun Dashboard(
     viewModel: SolarSystemViewModel,

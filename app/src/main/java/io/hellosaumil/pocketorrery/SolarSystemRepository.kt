@@ -2,6 +2,12 @@ package io.hellosaumil.pocketorrery
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Repository containing the data definitions for all celestial bodies.
+ * 
+ * In a more complex app, this could fetch data from an API or database.
+ * For Pocket Orrery, we use a static list of the eight planets and the Sun.
+ */
 object SolarSystemRepository {
     val sol = Planet(
         name = "Sun ☀️",

@@ -24,6 +24,15 @@ import kotlin.io.path.Path
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * The main 3D scene for the Solar System.
+ *
+ * This component manages the loading of 3D models, creation of entities, 
+ * and handled the animation loop for planetary orbits. It uses the Jetpack XR SDK
+ * to render high-fidelity 3D content in a spatial environment.
+ *
+ * @param viewModel The view model containing the solar system state.
+ */
 @SuppressLint("RestrictedApi")
 @Composable
 fun SolarSystemScene(viewModel: SolarSystemViewModel) {
@@ -177,8 +186,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         }
     }
     
-    // Handle selected planet highlighting and system scaling
-    // This effect now frame-locks the scale to prevent uncontrolled pinch-scaling
+    // Handle selected planet highlighting and system scaling.
+    // This effect runs continuously to sync with the frame and apply animations.
     LaunchedEffect(uiState.selectedPlanet, entities) {
         if (entities.isEmpty()) return@LaunchedEffect
         
@@ -240,8 +249,11 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                         return@forEach
                     }
                     
+                    // Simple circular orbit calculation
                     val angle = animationTime * planet.orbitSpeed * 0.3f
-                    // Compensate for Sun's scale (0.2) AND Sun's Swell Factor
+                    // Distance is scaled to match our scene units.
+                    // We also compensate for the Sun's swell factor to keep planets 
+                    // from being swallowed by the Sun when it's selected.
                     val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
                     
                     val x = cos(angle) * distance
