@@ -13,6 +13,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.GltfModel
@@ -237,21 +238,33 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                     }
                     entity.setScale(targetScale)
                     
-                    // --- Calculate Position (Orbit) ---
                     if (planet != SolarSystemRepository.sol) {
-                        val angle = animationTime * planet.orbitSpeed * 0.3f
-                        // Counter-scale the orbit distance as well to keep planets from jumping when Sun is selected
-                        val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
-                        
-                        val x = cos(angle) * distance
-                        val z = sin(angle) * distance
-                        entity.setPose(Pose(translation = Vector3(x, 0f, z)))
+                        entity.setPose(calculatePlanetPose(planet, animationTime, sunSwellFactor))
+                    }
                     }
                 }
             }
         }
     }
+
+
+private fun calculatePlanetPose(planet: Planet, animationTime: Float, sunSwellFactor: Float): Pose {
+    // 1. Orbit Position
+    val orbitAngle = animationTime * planet.orbitSpeed * 0.3f
+    // Counter-scale the orbit distance as well to keep planets from jumping when Sun is selected
+    val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
+
+    val x = cos(orbitAngle) * distance
+    val z = sin(orbitAngle) * distance
+
+    // 2. Axial Rotation (Spin)
+    val spinAngle = (animationTime * planet.rotationSpeed) % 360f
+    // Vector3.Up is (0, 1, 0)
+    val rotation = Quaternion.fromAxisAngle(Vector3(0f, 1f, 0f), spinAngle)
+
+    return Pose(translation = Vector3(x, 0f, z), rotation = rotation)
 }
+
 
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
