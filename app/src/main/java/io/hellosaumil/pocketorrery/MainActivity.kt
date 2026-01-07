@@ -261,7 +261,7 @@ fun DashboardContent(
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Galaxy Background", style = MaterialTheme.typography.bodyMedium)
+            Text("Galaxy Environment", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.weight(1f))
             androidx.compose.material3.Switch(
                 checked = uiState.isSkyboxEnabled,
@@ -290,7 +290,8 @@ fun DashboardContent(
         AnimatedVisibility(
             visible = isExpanded,
             enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            exit = shrinkVertically() + fadeOut(),
+            modifier = Modifier.weight(1f) // Ensure this expands correctly in the column
         ) {
              Column {
                 // Show selected planet info OR instructions
@@ -316,7 +317,10 @@ fun DashboardContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f) // List takes available space
+                ) {
                     items(planets) { planet ->
                         PlanetItem(
                             planet = planet,
