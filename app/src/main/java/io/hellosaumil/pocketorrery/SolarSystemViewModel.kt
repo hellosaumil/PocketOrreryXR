@@ -13,7 +13,7 @@ data class SolarSystemUiState(
     val selectedPlanet: Planet? = null,
     val isPaused: Boolean = false,
     val scale: Float = 1.0f,
-    val startupState: StartupState = StartupState.Welcome,
+    val startupState: StartupState = StartupState.Loading,
     val isSkyboxEnabled: Boolean = true
 )
 
@@ -21,6 +21,7 @@ data class SolarSystemUiState(
  * Defines the states for the initial startup sequence of the application.
  */
 enum class StartupState {
+    Loading, // Waiting for assets/environment to load
     Welcome, // "Welcome to the Future of Computing"
     Author,  // "PocketOrrery by Saumil Shah"
     Reveal,  // Solar system scales up
@@ -57,6 +58,7 @@ class SolarSystemViewModel : ViewModel() {
 
     fun advanceStartupState() {
         val nextState = when (_uiState.value.startupState) {
+            StartupState.Loading -> StartupState.Welcome
             StartupState.Welcome -> StartupState.Author
             StartupState.Author -> StartupState.Reveal
             StartupState.Reveal -> StartupState.Finished

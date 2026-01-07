@@ -7,6 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -130,22 +135,30 @@ fun MySpatialContent(
     onRequestHomeSpaceMode: () -> Unit
 ) {
     var isPlanetListExpanded by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    var measuredHeight by remember { mutableStateOf(400.dp) }
     
     SpatialPanel(
-        // Dynamic height based on expansion state
+        // Dynamic height based on measured content
         modifier = SubspaceModifier.offset(x = 500.dp, z = (-200).dp)
             .width(320.dp)
-            .height(if (isPlanetListExpanded) 700.dp else 300.dp),
+            .height(measuredHeight),
         dragPolicy = MovePolicy(),
         resizePolicy = ResizePolicy()
     ) {
-        Surface {
+        Surface(
+            modifier = Modifier
+                .wrapContentHeight(unbounded = true, align = Alignment.Top)
+                .onSizeChanged { size ->
+                    measuredHeight = with(density) { size.height.toDp() }
+                }
+        ) {
             Dashboard(
                 viewModel = viewModel,
                 isExpanded = isPlanetListExpanded,
                 onToggleExpand = { isPlanetListExpanded = !isPlanetListExpanded },
                 modifier = Modifier
-                    .fillMaxSize()
+                    .width(320.dp) // Maintain fixed width
                     .padding(24.dp)
             )
         }
@@ -238,7 +251,9 @@ fun DashboardContent(
 ) {
     // Startup sequence is now handled by StartupText3D in Subspace
     
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier
+    ) {
             Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
     
@@ -291,7 +306,7 @@ fun DashboardContent(
             visible = isExpanded,
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut(),
-            modifier = Modifier.weight(1f) // Ensure this expands correctly in the column
+            modifier = Modifier.fillMaxWidth()
         ) {
              Column {
                 // Show selected planet info OR instructions
@@ -310,18 +325,18 @@ fun DashboardContent(
                         } else {
                             Text("Select a Planet", style = MaterialTheme.typography.titleMedium)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Select a planet from the list below to view details.", style = MaterialTheme.typography.bodySmall)
+                            Text("For more details.", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                LazyColumn(
+                Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.weight(1f) // List takes available space
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(planets) { planet ->
+                    planets.forEach { planet ->
                         PlanetItem(
                             planet = planet,
                             isSelected = uiState.selectedPlanet == planet,
@@ -466,10 +481,16 @@ fun StartupText3D(
 
     // Drive the sequence - runs independently of UI visibility
     LaunchedEffect(uiState.startupState) {
-        if (uiState.startupState != StartupState.Finished) {
-            val pauseTime = 3000L // Time to read the text
-            delay(pauseTime)
-            viewModel.advanceStartupState()
+        when (uiState.startupState) {
+            StartupState.Welcome, StartupState.Author -> {
+                delay(3000L)
+                viewModel.advanceStartupState()
+            }
+            StartupState.Reveal -> {
+                delay(3500L) // Wait for the 3s reveal animation + buffer
+                viewModel.advanceStartupState()
+            }
+            else -> {}
         }
     }
 }

@@ -64,6 +64,18 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         animationSpec = androidx.compose.animation.core.tween(durationMillis = 3000, easing = androidx.compose.animation.core.FastOutSlowInEasing),
         label = "startupReveal"
     )
+
+    // Individual selection animations for smooth scaling transitions
+    val selectionFactors = SolarSystemRepository.allBodies.associateWith { planet ->
+        androidx.compose.animation.core.animateFloatAsState(
+            targetValue = if (uiState.selectedPlanet == planet) 1.5f else 1.0f,
+            label = "${planet.name}Swell",
+            animationSpec = androidx.compose.animation.core.spring(
+                dampingRatio = androidx.compose.animation.core.Spring.DampingRatioLowBouncy,
+                stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+            )
+        )
+    }
     
     // State for loaded models
     var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
@@ -128,6 +140,13 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         }
     }
 
+    // Trigger welcome sequence once skybox is loaded
+    LaunchedEffect(skyboxEntity) {
+        if (skyboxEntity != null && uiState.startupState == StartupState.Loading) {
+            viewModel.advanceStartupState()
+        }
+    }
+
     // Create entities when models are loaded
     DisposableEffect(models) {
         if (models.isNotEmpty()) {
@@ -186,82 +205,48 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         }
     }
     
-    // Handle selected planet highlighting and system scaling.
-    // This effect runs continuously to sync with the frame and apply animations.
-    LaunchedEffect(uiState.selectedPlanet, entities) {
-        if (entities.isEmpty()) return@LaunchedEffect
-        
-        while(true) {
-            withFrameMillis { } // Sync with frame
-            
-            // Effective scale combines user setting and startup animation
-            val globalScale = animatedScale * startupScale
-            
-            // Determine Sun Swell Factor (1.5 if selected)
-            val isSunSelected = uiState.selectedPlanet == SolarSystemRepository.sol
-            val sunSwellFactor = if (isSunSelected) 1.5f else 1.0f
-            
-            entities.forEach { (planet, entity) ->
-                val isSelected = uiState.selectedPlanet == planet
-                
-                val targetScale = if (planet == SolarSystemRepository.sol) {
-                    // Sun: Apply global scale, AND selection multiplier if selected.
-                    val base = 0.2f * globalScale
-                    base * sunSwellFactor
-                } else {
-                    // Planets:
-                    // 1. Calculate Base Size (unchanged)
-                    val baseSize = (0.02f + planet.radius * 0.15f) / 0.2f
-                    
-                    // 2. Counter-Scale: Divide by sunSwellFactor to cancel out parent scaling
-                    val counterScaledSize = baseSize / sunSwellFactor
-                    
-                    // 3. Apply Selection: Multiply by 1.5 if selected
-                    if (isSelected) counterScaledSize * 1.5f else counterScaledSize
-                }
-                
-                // Enforce scale precisely to override any component-level scaling
-                entity.setScale(targetScale)
-            }
-        }
-    }
-    
-    // Animation Loop
-    LaunchedEffect(uiState.isPaused, entities) {
+    // Unified Animation & Scaling Loop
+    // This merged loop ensures that scaling and orbit positions are updated in the same frame,
+    // avoiding the one-frame delay jitter when the Sun's scale changes and planets need to counter-scale.
+    LaunchedEffect(entities, uiState.isPaused) {
         if (entities.isEmpty()) return@LaunchedEffect
         
         val sessionStartTime = System.nanoTime()
-        val baseTime = animationTime
+        val startAnimationTime = animationTime
         
-        while (!uiState.isPaused) {
+        while(true) {
             withFrameMillis { _ ->
-                val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
-                animationTime = baseTime + elapsedTime
+                // 1. Update Animation Time if not paused
+                if (!uiState.isPaused) {
+                    val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
+                    animationTime = startAnimationTime + elapsedTime
+                }
                 
-                // Determine Sun Swell for Position Counter-Scaling
-                val isSunSelected = uiState.selectedPlanet == SolarSystemRepository.sol
-                val sunSwellFactor = if (isSunSelected) 1.5f else 1.0f
+                // 2. Synchronized Transformation Update
+                val globalScale = animatedScale * startupScale
+                val sunSwellFactor = selectionFactors[SolarSystemRepository.sol]?.value ?: 1.0f
                 
-                // Update planet positions (orbiting around Sun (0,0,0) local space)
                 entities.forEach { (planet, entity) ->
-                    // Sun doesn't orbit itself
-                    if (planet == SolarSystemRepository.sol) {
-                        return@forEach
+                    // --- Calculate Scale ---
+                    val selectionFactor = selectionFactors[planet]?.value ?: 1.0f
+                    val targetScale = if (planet == SolarSystemRepository.sol) {
+                        0.2f * globalScale * sunSwellFactor
+                    } else {
+                        val baseSize = (0.02f + planet.radius * 0.15f) / 0.2f
+                        (baseSize / sunSwellFactor) * selectionFactor
                     }
+                    entity.setScale(targetScale)
                     
-                    // Simple circular orbit calculation
-                    val angle = animationTime * planet.orbitSpeed * 0.3f
-                    // Distance is scaled to match our scene units.
-                    // We also compensate for the Sun's swell factor to keep planets 
-                    // from being swallowed by the Sun when it's selected.
-                    val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
-                    
-                    val x = cos(angle) * distance
-                    val z = sin(angle) * distance
-                    
-                    entity.setPose(
-                        Pose(translation = Vector3(x, 0f, z))
-                    )
+                    // --- Calculate Position (Orbit) ---
+                    if (planet != SolarSystemRepository.sol) {
+                        val angle = animationTime * planet.orbitSpeed * 0.3f
+                        // Counter-scale the orbit distance as well to keep planets from jumping when Sun is selected
+                        val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
+                        
+                        val x = cos(angle) * distance
+                        val z = sin(angle) * distance
+                        entity.setPose(Pose(translation = Vector3(x, 0f, z)))
+                    }
                 }
             }
         }
