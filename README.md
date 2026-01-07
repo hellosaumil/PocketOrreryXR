@@ -1,12 +1,12 @@
-# Pocket Orrery 🌎🔭
+# Pocket Orrery XR 🌎🔭
 
-Welcome to **Pocket Orrery**, an interactive 3D solar system experience built for **Android XR**.
+Welcome to **Pocket Orrery XR**, an interactive 3D solar system experience built for **Android XR**.
 
 This project holds a special place for me as it is my **very first Android application**, and naturally my first foray into the exciting world of **Spatial Computing** with Android XR.
 
 ## Overview
 
-Pocket Orrery allows you to bring the solar system into your physical space. You can observe the planets in their orbits, scale the entire system to fit on your desk or fill your room, and learn interesting facts about each celestial body.
+Pocket Orrery XR allows you to bring the solar system into your physical space. You can observe the planets in their orbits, scale the entire system to fit on your desk or fill your room, and learn interesting facts about each celestial body.
 
 ## Features
 
@@ -28,7 +28,7 @@ Pocket Orrery allows you to bring the solar system into your physical space. You
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/hellosaumil/PocketOrrery.git
+   git clone https://github.com/hellosaumil/PocketOrreryXR.git
    ```
 2. Open the project in Android Studio.
 3. Sync Project with Gradle Files.
@@ -42,7 +42,7 @@ Pocket Orrery allows you to bring the solar system into your physical space. You
 
 ## About the Author
 
-Hi, I'm Saumil Shah! Pocket Orrery is not only my first step into XR but my **first-ever Android application**. The entire project was **vibecoded** using **Google Antigravity**. I created this app to explore the possibilities of spatial computing and to build something that combines my interests in technology and astronomy.
+Hi, I'm Saumil Shah! Pocket Orrery XR is not only my first step into XR but my **first-ever Android application**. The entire project was **vibecoded** using **Google Antigravity**. I created this app to explore the possibilities of spatial computing and to build something that combines my interests in technology and astronomy.
 
 ## License
 

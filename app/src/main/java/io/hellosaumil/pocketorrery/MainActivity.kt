@@ -254,7 +254,7 @@ fun DashboardContent(
     Column(
         modifier = modifier
     ) {
-            Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
+            Text("Pocket Orrery XR 🌎🔭", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
     
             Button(onClick = onTogglePause) {
@@ -468,7 +468,7 @@ fun StartupText3D(
                         exit = fadeOut(animationSpec = androidx.compose.animation.core.tween(1000))
                     ) {
                         Text(
-                            "PocketOrrery\nby Saumil Shah",
+                            "PocketOrreryXR\nby Saumil Shah",
                             style = MaterialTheme.typography.displayMedium,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                             color = androidx.compose.ui.graphics.Color.White

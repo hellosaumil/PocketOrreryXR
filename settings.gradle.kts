@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PocketOrrery"
+rootProject.name = "PocketOrreryXR"
 include(":app")
