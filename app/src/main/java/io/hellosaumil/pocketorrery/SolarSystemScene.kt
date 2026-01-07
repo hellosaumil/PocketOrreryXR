@@ -212,15 +212,17 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     LaunchedEffect(entities, uiState.isPaused) {
         if (entities.isEmpty()) return@LaunchedEffect
         
-        val sessionStartTime = System.nanoTime()
-        val startAnimationTime = animationTime
+        var lastFrameTime = System.nanoTime()
         
         while(true) {
             withFrameMillis { _ ->
+                val currentNano = System.nanoTime()
+                val dt = (currentNano - lastFrameTime) / 1_000_000_000f
+                lastFrameTime = currentNano
+
                 // 1. Update Animation Time if not paused
                 if (!uiState.isPaused) {
-                    val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
-                    animationTime = startAnimationTime + elapsedTime
+                    animationTime += dt * uiState.simulationSpeed
                 }
                 
                 // 2. Synchronized Transformation Update
@@ -240,6 +242,13 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                     
                     if (planet != SolarSystemRepository.sol) {
                         entity.setPose(calculatePlanetPose(planet, animationTime, sunSwellFactor))
+                    } else {
+                        // For the Sun: Lock rotation to prevent tilting the whole system (from grab gesture),
+                        // but apply the simulation's spin.
+                        // We read the current pose (updated by MovableComponent) for translation.
+                        val currentTranslation = entity.getPose().translation
+                        val targetRotation = calculatePlanetPose(planet, animationTime, sunSwellFactor).rotation
+                        entity.setPose(Pose(translation = currentTranslation, rotation = targetRotation))
                     }
                     }
                 }
@@ -258,9 +267,22 @@ private fun calculatePlanetPose(planet: Planet, animationTime: Float, sunSwellFa
     val z = sin(orbitAngle) * distance
 
     // 2. Axial Rotation (Spin)
+    // Calculate spin angle in degrees
     val spinAngle = (animationTime * planet.rotationSpeed) % 360f
-    // Vector3.Up is (0, 1, 0)
-    val rotation = Quaternion.fromAxisAngle(Vector3(0f, 1f, 0f), spinAngle)
+    val spinRotation = Quaternion.fromAxisAngle(Vector3(0f, 1f, 0f), spinAngle)
+
+    // Calculate axial tilt (static rotation around Z axis, assuming orbit plane is XZ)
+    // Note: In a full simulation, tilt direction precesses, but static tilt is fine for this.
+    // We tilt around the X-axis (pitch) or Z-axis (roll) to tip the pole.
+    // Let's use Z-axis to tip "sideways" relative to the view.
+    val tiltRotation = Quaternion.fromAxisAngle(Vector3(0f, 0f, 1f), planet.axialTilt)
+
+    // Apply tilt THEN spin (or spin then tilt? Earth spins around its tilted axis).
+    // So we want the local spin to be affected by the parent tilt.
+    // Quaternion multiplication order matters: LHS * RHS means apply RHS then LHS (usually).
+    // If we want to spin around the tilted axis:
+    // TiltedFrame = Tilt * Spin
+    val rotation = tiltRotation * spinRotation
 
     return Pose(translation = Vector3(x, 0f, z), rotation = rotation)
 }

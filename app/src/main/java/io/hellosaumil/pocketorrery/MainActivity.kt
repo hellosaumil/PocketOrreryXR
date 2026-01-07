@@ -23,6 +23,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.FastRewind
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -226,6 +233,7 @@ fun Dashboard(
     DashboardContent(
         uiState = uiState,
         onTogglePause = { viewModel.togglePause() },
+        onSetSpeed = { viewModel.setSpeed(it) },
         onSetScale = { viewModel.setScale(it) },
         onToggleSkybox = { viewModel.toggleSkybox() },
         onSelectPlanet = { viewModel.selectPlanet(it) },
@@ -240,6 +248,7 @@ fun Dashboard(
 fun DashboardContent(
     uiState: SolarSystemUiState,
     onTogglePause: () -> Unit,
+    onSetSpeed: (Float) -> Unit,
     onSetScale: (Float) -> Unit,
     onToggleSkybox: () -> Unit,
     onSelectPlanet: (Planet) -> Unit,
@@ -254,12 +263,15 @@ fun DashboardContent(
     Column(
         modifier = modifier
     ) {
-            Text("Pocket Orrery XR 🌎🔭", style = MaterialTheme.typography.headlineMedium)
+            Text("Pocket Orrery 🌎🔭", style = MaterialTheme.typography.headlineMedium)
             Spacer(modifier = Modifier.height(16.dp))
     
-            Button(onClick = onTogglePause) {
-                Text(if (uiState.isPaused) "Resume Orbit" else "Pause Orbit")
-            }
+            MediaControls(
+                isPaused = uiState.isPaused,
+                currentSpeed = uiState.simulationSpeed,
+                onTogglePause = onTogglePause,
+                onSetSpeed = onSetSpeed
+            )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -376,6 +388,65 @@ fun PlanetItem(planet: Planet, isSelected: Boolean, onClick: () -> Unit) {
 
 
 @Composable
+fun MediaControls(
+    isPaused: Boolean,
+    currentSpeed: Float,
+    onTogglePause: () -> Unit,
+    onSetSpeed: (Float) -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Speed: ${String.format("%.1fx", currentSpeed)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Fast Rewind (Subtract 1x from speed)
+            IconButton(onClick = { onSetSpeed(currentSpeed - 1.0f) }) {
+                Icon(Icons.Default.FastRewind, contentDescription = "Fast Rewind")
+            }
+            
+            // Rewind / Reverse (Reset to -1x)
+            IconButton(onClick = { onSetSpeed(-1.0f) }) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Reverse")
+            }
+            
+            // Play / Pause
+            Button(
+                onClick = onTogglePause,
+                 // Highlight play button if paused, or if playing (to show it's active)
+                 // Let's just use standard button style
+            ) {
+                 Icon(
+                     if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                     contentDescription = if (isPaused) "Play" else "Pause"
+                 )
+            }
+
+            // Forward (Reset to 1x)
+            IconButton(onClick = { onSetSpeed(1.0f) }) {
+                Icon(Icons.Default.ArrowForward, contentDescription = "Forward")
+            }
+
+            // Fast Forward (Add 1x to speed)
+            IconButton(onClick = { onSetSpeed(currentSpeed + 1.0f) }) {
+                Icon(Icons.Default.FastForward, contentDescription = "Fast Forward")
+            }
+        }
+    }
+}
+
+
+
+@Composable
 fun FullSpaceModeIconButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     IconButton(onClick = onClick, modifier = modifier) {
         Icon(
@@ -406,6 +477,7 @@ private fun DashboardPreview() {
                     selectedPlanet = SolarSystemRepository.planets.find { it.name == "Earth" }
                 ),
                 onTogglePause = {},
+                onSetSpeed = {},
                 onSetScale = {},
                 onToggleSkybox = {},
                 onSelectPlanet = {},

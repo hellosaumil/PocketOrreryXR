@@ -18,6 +18,7 @@ data class Planet(
     val orbitDistance: Float, // Relative distance from sun
     val orbitSpeed: Float, // Relative speed (degrees per frame or second)
     val rotationSpeed: Float, // Rotation speed around axis (degrees per second)
+    val axialTilt: Float = 0f, // Axial tilt in degrees
     val color: Color,
     val description: String
 )
