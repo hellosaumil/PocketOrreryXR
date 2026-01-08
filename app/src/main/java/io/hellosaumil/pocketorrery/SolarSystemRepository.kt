@@ -22,7 +22,7 @@ object SolarSystemRepository {
 
     val planets = listOf(
         Planet("Mercury", 0.1f, 1.5f, 4.0f, 5.0f, 0.0f, Color.Gray, "The smallest planet."), // Slow rotation, negligible tilt
-        Planet("Venus", 0.2f, 2.0f, 3.0f, -2.0f, 0.0f, Color(0xFFFFC107), "Spinning backwards."), // Retrograde, very slow, upside down
+        Planet("Venus", 0.2f, 2.0f, 3.0f, -15.0f, 0.0f, Color(0xFFFFC107), "Spinning backwards."), // Retrograde, faster visible rotation
         Planet("Earth 🌎", 0.2f, 2.8f, 2.5f, 20.0f, 0.0f, Color.Blue, "Our home."), // Baseline
         Planet("Mars", 0.15f, 3.5f, 2.0f, 19.0f, 0.0f, Color.Red, "The Red Planet."), // Similar to Earth
         Planet("Jupiter", 0.6f, 5.5f, 1.0f, 45.0f, 0.0f, Color(0xFFDEB887), "Gas Giant."), // Very fast, small tilt

@@ -146,9 +146,8 @@ fun MySpatialContent(
     var measuredHeight by remember { mutableStateOf(400.dp) }
     
     SpatialPanel(
-        // Dynamic height based on measured content
         modifier = SubspaceModifier.offset(x = 500.dp, z = (-200).dp)
-            .width(320.dp)
+            .width(400.dp) // Wider panel for better resizing
             .height(measuredHeight),
         dragPolicy = MovePolicy(),
         resizePolicy = ResizePolicy()
@@ -165,7 +164,7 @@ fun MySpatialContent(
                 isExpanded = isPlanetListExpanded,
                 onToggleExpand = { isPlanetListExpanded = !isPlanetListExpanded },
                 modifier = Modifier
-                    .width(320.dp) // Maintain fixed width
+                    .fillMaxWidth() // Fill available width
                     .padding(24.dp)
             )
         }
