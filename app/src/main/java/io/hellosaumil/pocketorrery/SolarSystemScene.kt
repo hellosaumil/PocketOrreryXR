@@ -19,6 +19,8 @@ import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.GltfModel
 import androidx.xr.scenecore.GltfModelEntity
 import androidx.xr.scenecore.MovableComponent
+import androidx.xr.scenecore.SpatialEnvironment
+import androidx.xr.scenecore.scene
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import kotlin.io.path.Path
@@ -85,9 +87,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     var ringModel by remember { mutableStateOf<GltfModel?>(null) }
     var orbitRings by remember { mutableStateOf<List<GltfModelEntity>>(emptyList()) }
     
-    // Skybox State
+    // Skybox State (used for SpatialEnvironmentPreference, not as an entity)
     var skyboxModel by remember { mutableStateOf<GltfModel?>(null) }
-    var skyboxEntity by remember { mutableStateOf<GltfModelEntity?>(null) }
     
     // Load models asynchronously
     LaunchedEffect(session) {
@@ -130,32 +131,36 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         models = loadedModels
     }
     
-    // Create Skybox Entity - Controlled by Toggle
-    DisposableEffect(skyboxModel, uiState.isSkyboxEnabled) {
+    // Set Spatial Environment Preference (the proper way per Android XR SDK docs)
+    LaunchedEffect(skyboxModel, uiState.isSkyboxEnabled) {
+        val spatialEnv = session.scene.spatialEnvironment
+        
         if (skyboxModel != null && uiState.isSkyboxEnabled) {
             try {
-                // Background at 0,0,0, not movable, large scale handled by model (radius 50 m)
-                // Inverted faces allow viewing from inside.
-                skyboxEntity = GltfModelEntity.create(
-                    session,
-                    skyboxModel!!,
-                    Pose(translation = Vector3(0f, 0f, 0f))
+                // Use milky_way.gltf as environment geometry (provides 360° visual)
+                // No EXR skybox needed - the geometry texture is our visual background
+                val preference = SpatialEnvironment.SpatialEnvironmentPreference(
+                    skybox = null,
+                    geometry = skyboxModel
                 )
-                android.util.Log.d("SolarSystemScene", "Skybox entity created")
+                spatialEnv.preferredSpatialEnvironment = preference
+                // Set passthrough to 0 to hide OS environment and show our galaxy
+                spatialEnv.preferredPassthroughOpacity = 0.0f
+                android.util.Log.d("SolarSystemScene", "Spatial environment preference set")
             } catch (e: Exception) {
-                android.util.Log.e("SolarSystemScene", "Failed to create Skybox entity", e)
+                android.util.Log.e("SolarSystemScene", "Failed to set spatial environment", e)
             }
-        }
-        
-        onDispose {
-            skyboxEntity?.dispose()
-            skyboxEntity = null
+        } else {
+            // Disable custom environment, return control to OS
+            spatialEnv.preferredSpatialEnvironment = null
+            spatialEnv.preferredPassthroughOpacity = SpatialEnvironment.NO_PASSTHROUGH_OPACITY_PREFERENCE
+            android.util.Log.d("SolarSystemScene", "Spatial environment cleared")
         }
     }
 
-    // Trigger welcome sequence once skybox is loaded
-    LaunchedEffect(skyboxEntity) {
-        if (skyboxEntity != null && uiState.startupState == StartupState.Loading) {
+    // Trigger welcome sequence once skybox model is loaded
+    LaunchedEffect(skyboxModel) {
+        if (skyboxModel != null && uiState.startupState == StartupState.Loading) {
             viewModel.advanceStartupState()
         }
     }
