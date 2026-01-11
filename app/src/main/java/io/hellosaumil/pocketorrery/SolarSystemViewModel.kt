@@ -13,6 +13,7 @@ data class SolarSystemUiState(
     val selectedPlanet: Planet? = null,
     val isPaused: Boolean = false,
     val scale: Float = 1.0f,
+    val simulationSpeed: Float = 1.0f,
     val startupState: StartupState = StartupState.Loading,
     val isSkyboxEnabled: Boolean = true
 )
@@ -54,6 +55,10 @@ class SolarSystemViewModel : ViewModel() {
     
     fun setScale(scale: Float) {
         _uiState.update { it.copy(scale = scale) }
+    }
+
+    fun setSpeed(speed: Float) {
+        _uiState.update { it.copy(simulationSpeed = speed) }
     }
 
     fun advanceStartupState() {

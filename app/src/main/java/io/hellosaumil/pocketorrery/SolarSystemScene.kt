@@ -13,6 +13,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.GltfModel
@@ -49,8 +50,9 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
         return
     }
 
-    // Animation time state
-    var animationTime by remember { mutableFloatStateOf(0f) }
+    // Animation time states
+    var orbitTime by remember { mutableFloatStateOf(0f) }  // Affected by pause and speed
+    var spinTime by remember { mutableFloatStateOf(0f) }   // Always runs at 1x
 
     // Smooth scaling
     val animatedScale by androidx.compose.animation.core.animateFloatAsState(
@@ -80,6 +82,8 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
     // State for loaded models
     var models by remember { mutableStateOf<Map<Planet, GltfModel>>(emptyMap()) }
     var entities by remember { mutableStateOf<Map<Planet, GltfModelEntity>>(emptyMap()) }
+    var ringModel by remember { mutableStateOf<GltfModel?>(null) }
+    var orbitRings by remember { mutableStateOf<List<GltfModelEntity>>(emptyList()) }
     
     // Skybox State
     var skyboxModel by remember { mutableStateOf<GltfModel?>(null) }
@@ -114,6 +118,15 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                 android.util.Log.e("SolarSystemScene", "Failed to load model for ${planet.name}", e)
             }
         }
+        
+        // Load Ring Model
+        try {
+            ringModel = GltfModel.create(session, Path("models/ring.gltf"))
+            android.util.Log.d("SolarSystemScene", "Loaded ring.gltf")
+        } catch (e: Exception) {
+            android.util.Log.e("SolarSystemScene", "Failed to load ring model", e)
+        }
+        
         models = loadedModels
     }
     
@@ -198,28 +211,60 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                 }
             }
             entities = newEntities
+            
+            // 3. Create Orbit Rings (one per planet)
+            val rings = mutableListOf<GltfModelEntity>()
+            if (ringModel != null && rootEntity != null) {
+                SolarSystemRepository.planets.forEach { planet ->
+                    try {
+                        val orbitRadius = (planet.orbitDistance * 0.1f) / 0.2f
+                        val ring = GltfModelEntity.create(
+                            session,
+                            ringModel!!,
+                            Pose(translation = Vector3(0f, 0f, 0f))
+                        ).apply {
+                            rootEntity.addChild(this)
+                            // Scale the ring to match the orbit radius
+                            setScale(Vector3(orbitRadius, 1f, orbitRadius))
+                        }
+                        rings.add(ring)
+                    } catch (e: Exception) {
+                        android.util.Log.e("SolarSystemScene", "Failed to create orbit ring for ${planet.name}", e)
+                    }
+                }
+            }
+            orbitRings = rings
         }
         
         onDispose {
             entities.values.forEach { it.dispose() }
+            orbitRings.forEach { it.dispose() }
         }
     }
     
     // Unified Animation & Scaling Loop
     // This merged loop ensures that scaling and orbit positions are updated in the same frame,
     // avoiding the one-frame delay jitter when the Sun's scale changes and planets need to counter-scale.
-    LaunchedEffect(entities, uiState.isPaused) {
+    LaunchedEffect(entities) {
         if (entities.isEmpty()) return@LaunchedEffect
         
-        val sessionStartTime = System.nanoTime()
-        val startAnimationTime = animationTime
+        var lastFrameTime = System.nanoTime()
         
         while(true) {
             withFrameMillis { _ ->
-                // 1. Update Animation Time if not paused
-                if (!uiState.isPaused) {
-                    val elapsedTime = (System.nanoTime() - sessionStartTime) / 1_000_000_000f
-                    animationTime = startAnimationTime + elapsedTime
+                val currentNano = System.nanoTime()
+                val dt = (currentNano - lastFrameTime) / 1_000_000_000f
+                lastFrameTime = currentNano
+
+                // Read fresh state from ViewModel (not captured uiState)
+                val currentState = viewModel.uiState.value
+
+                // 1. Update Animation Times
+                // Spin always continues at 1x speed
+                spinTime += dt
+                // Orbit only advances when not paused, at simulation speed
+                if (!currentState.isPaused) {
+                    orbitTime += dt * currentState.simulationSpeed
                 }
                 
                 // 2. Synchronized Transformation Update
@@ -237,21 +282,66 @@ fun SolarSystemScene(viewModel: SolarSystemViewModel) {
                     }
                     entity.setScale(targetScale)
                     
-                    // --- Calculate Position (Orbit) ---
                     if (planet != SolarSystemRepository.sol) {
-                        val angle = animationTime * planet.orbitSpeed * 0.3f
-                        // Counter-scale the orbit distance as well to keep planets from jumping when Sun is selected
-                        val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
-                        
-                        val x = cos(angle) * distance
-                        val z = sin(angle) * distance
-                        entity.setPose(Pose(translation = Vector3(x, 0f, z)))
+                        entity.setPose(calculatePlanetPose(planet, orbitTime, spinTime, sunSwellFactor))
+                    } else {
+                        // For the Sun: Lock rotation to prevent tilting the whole system (from grab gesture),
+                        // but apply the simulation's spin.
+                        // We read the current pose (updated by MovableComponent) for translation.
+                        val currentTranslation = entity.getPose().translation
+                        val targetRotation = calculatePlanetPose(planet, orbitTime, spinTime, sunSwellFactor).rotation
+                        entity.setPose(Pose(translation = currentTranslation, rotation = targetRotation))
+                    }
+                }
+                
+                // 3. Update Orbit Rings to match planet orbit distances and counter-rotate Sun's spin
+                val sunSpinAngle = (spinTime * SolarSystemRepository.sol.rotationSpeed) % 360f
+                val counterRotation = Quaternion.fromAxisAngle(Vector3(0f, 1f, 0f), -sunSpinAngle)
+                
+                orbitRings.forEachIndexed { index, ring ->
+                    if (index < SolarSystemRepository.planets.size) {
+                        val planet = SolarSystemRepository.planets[index]
+                        val orbitRadius = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
+                        // Set both scale AND rotation to counter Sun's spin
+                        ring.setPose(Pose(translation = Vector3(0f, 0f, 0f), rotation = counterRotation))
+                        ring.setScale(Vector3(orbitRadius, 1f, orbitRadius))
                     }
                 }
             }
         }
     }
 }
+
+private fun calculatePlanetPose(planet: Planet, orbitTime: Float, spinTime: Float, sunSwellFactor: Float): Pose {
+    // 1. Orbit Position
+    val orbitAngle = orbitTime * planet.orbitSpeed * 0.3f
+    // Counter-scale the orbit distance as well to keep planets from jumping when Sun is selected
+    val distance = ((planet.orbitDistance * 0.1f) / 0.2f) / sunSwellFactor
+
+    val x = cos(orbitAngle) * distance
+    val z = sin(orbitAngle) * distance
+
+    // 2. Axial Rotation (Spin) - uses spinTime (always at 1x)
+    // Calculate spin angle in degrees
+    val spinAngle = (spinTime * planet.rotationSpeed) % 360f
+    val spinRotation = Quaternion.fromAxisAngle(Vector3(0f, 1f, 0f), spinAngle)
+
+    // Calculate axial tilt (static rotation around Z axis, assuming orbit plane is XZ)
+    // Note: In a full simulation, tilt direction precesses, but static tilt is fine for this.
+    // We tilt around the X-axis (pitch) or Z-axis (roll) to tip the pole.
+    // Let's use Z-axis to tip "sideways" relative to the view.
+    val tiltRotation = Quaternion.fromAxisAngle(Vector3(0f, 0f, 1f), planet.axialTilt)
+
+    // Apply tilt THEN spin (or spin then tilt? Earth spins around its tilted axis).
+    // So we want the local spin to be affected by the parent tilt.
+    // Quaternion multiplication order matters: LHS * RHS means apply RHS then LHS (usually).
+    // If we want to spin around the tilted axis:
+    // TiltedFrame = Tilt * Spin
+    val rotation = tiltRotation * spinRotation
+
+    return Pose(translation = Vector3(x, 0f, z), rotation = rotation)
+}
+
 
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
