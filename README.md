@@ -6,11 +6,10 @@ This project holds a special place for me as it is my **very first Android appli
 
 ## Demo
 
-### Full Video Demo
-<iframe src="https://drive.google.com/file/d/1ip8ex6O7Irwo94Ih39Fd6Lcx7jpFMWaA/preview" width="100%" height="480" allow="autoplay"></iframe>
+[![Watch the Full Demo Video](demo/demo_1080p.gif)](https://drive.google.com/file/d/1ip8ex6O7Irwo94Ih39Fd6Lcx7jpFMWaA/view?usp=drive_link)
 
-### Preview
-![Pocket Orrery XR](demo/demo.gif)
+> [!TIP]
+> **Click the animated preview above** to watch the full high-resolution demo on Google Drive.
 
 ### Screenshots
 | Initial View | Expanded Controls |
