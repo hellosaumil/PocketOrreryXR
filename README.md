@@ -6,7 +6,7 @@ This project holds a special place for me as it is my **very first Android appli
 
 ## Demo
 
-[![Watch the Full Demo Video](demo/demo_1080p.gif)](https://drive.google.com/file/d/1ip8ex6O7Irwo94Ih39Fd6Lcx7jpFMWaA/view?usp=drive_link)
+[![Watch the Full Demo Video](demo/demo_720p.gif)](https://drive.google.com/file/d/1ip8ex6O7Irwo94Ih39Fd6Lcx7jpFMWaA/view?usp=drive_link)
 
 > [!TIP]
 > **Click the animated preview above** to watch the full high-resolution demo on Google Drive.
