@@ -50,9 +50,9 @@
         }
       },
       "emissiveFactor": [
-        0.3,
-        0.3,
-        0.3
+        0.8,
+        0.8,
+        0.8
       ],
       "emissiveTexture": {
         "index": 0

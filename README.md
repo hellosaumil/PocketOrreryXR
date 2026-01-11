@@ -4,6 +4,21 @@ Welcome to **Pocket Orrery XR**, an interactive 3D solar system experience built
 
 This project holds a special place for me as it is my **very first Android application**, and naturally my first foray into the exciting world of **Spatial Computing** with Android XR.
 
+## Demo
+
+### Full Video Demo
+<iframe src="https://drive.google.com/file/d/1ip8ex6O7Irwo94Ih39Fd6Lcx7jpFMWaA/preview" width="100%" height="480" allow="autoplay"></iframe>
+
+### Preview
+![Pocket Orrery XR](demo/demo.gif)
+
+### Screenshots
+| Initial View | Expanded Controls |
+| :---: | :---: |
+| <img src="demo/Default%20Entry.jpg" width="400"> | <img src="demo/Solar%20System%20Scaled%20Down%20+%20Menu%20Expanded.jpg" width="400"> |
+
+---
+
 ## Overview
 
 Pocket Orrery XR allows you to bring the solar system into your physical space. You can observe the planets in their orbits, scale the entire system to fit on your desk or fill your room, and learn interesting facts about each celestial body.
