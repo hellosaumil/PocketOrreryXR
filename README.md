@@ -12,6 +12,7 @@ This project holds a special place for me as it is my **very first Android appli
 > **Click the animated preview above** to watch the full high-resolution demo on Google Drive.
 
 ### Screenshots
+
 | Initial View | Expanded Controls |
 | :---: | :---: |
 | <img src="demo/Default%20Entry.jpg" width="400"> | <img src="demo/Solar%20System%20Scaled%20Down%20+%20Menu%20Expanded.jpg" width="400"> |
